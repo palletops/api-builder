@@ -24,6 +24,12 @@ schemas specified on the `:errors` metadata key.  Validation is
 controlled by the `*errors*` and the `*validate-errors*` vars at
 compile time.
 
+The `validate-arguments` middleware validates arguments and return
+value against the `:sig` metadata key.  The value of the key is a
+sequence of schema sequences.  The first value of each sequence is the
+return type.  A vararg final arg is represented as a single schema
+that should match all varargs.
+
 ## License
 
 Copyright © 2014 Hugo Duncan
