@@ -54,3 +54,20 @@
        clojure.lang.ExceptionInfo #"some unkown error" (v-e-n)))
   (is (thrown-with-msg?
        clojure.lang.ExceptionInfo #"some unkown error" (v-e-a-off))))
+
+;;; # Test validate-arguments
+(dfn/def-defn defn-validate-args
+  [(validate-arguments)])
+
+;; (defn-validate-args v-arg-compile-error [x] x) ;; should give compile error
+
+(defn-validate-args v-arg-kw
+  {:sig [[schema/Keyword schema/Any]]}
+  [x]
+  x)
+
+(deftest validate-args-test
+  (is (= ::x (v-arg-kw ::x))
+      "validates correct return type ok")
+  (is (thrown? clojure.lang.ExceptionInfo #"xxx" (v-arg-kw 'a))
+      "validates incorrect return type ok"))
