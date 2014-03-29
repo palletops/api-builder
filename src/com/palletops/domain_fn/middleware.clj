@@ -54,21 +54,89 @@
       m)))
 
 ;;; # Validate arguments
+(defn- arg-elements
+  "Return the elements of an arg vector ignoring any '& symbol."
+  [args]
+  (filterv #(not= '& %) args))
+
+(defn- has-varargs?
+  "Predicate to test whether an arg vector contains varargs"
+  [args]
+  (= (last (butlast args)) '&))
+
+(defn- one-args
+  "Return a schema that matches args and types one to one."
+  [types args]
+  (mapv (fn [s arg]
+          `(schema/one ~s ~(name arg)))
+        types args))
+
+(defn- arg-schema
+  "Return an arg schema for args."
+  [types args varargs?]
+  (if varargs?
+    (conj
+     (one-args (butlast types) (butlast args))
+     (last types))
+    (one-args types args)))
+
+(defn- arg-count-matches?
+  [args sig]
+  (= (inc (count args)) (count sig)))
+
+(defn arg-and-ref
+  "Ensure a symbolic argument, arg, can be referred to.
+  Returns a tuple with a modifed argument and an argument reference."
+  [arg]
+  (let [arg (cond
+             (map? arg) (if (not (:as arg))
+                          (assoc arg :as (gensym "arg"))
+                          arg)
+             (vector? arg) (if (not (= :as (last (butlast arg))))
+                             (vec (concat arg [:as (gensym "arg")]))
+                             arg)
+             :else arg)
+        arg-ref (cond
+                 (map? arg) (:as arg)
+                 (vector? arg) (last arg)
+                 :else arg)]
+    [arg arg-ref]))
+
 (defn- validate-arguments-form
   "Convert a body-arg to assert that arguments match schemas. "
   [[args & body] sigs]
-  (let [sig (first (filter #(= (inc (count args)) (count %)) sigs))]
-    (when-not sig
-      (throw
-       (ex-info (str "No matching arity in :sig for " args)
-                {:sig sigs
-                 :args args})))
-    [args `(do
-             (every? identity
-                     (map #(schema/validate %1 %2) ~(vec (rest sigs)) ~args))
-             (let [r# (do ~@body)]
-               (schema/validate ~(first sig) r#)
-               r#))]))
+  (let [matching-sigs (filter #(arg-count-matches? (arg-elements args) %) sigs)
+        sig (first matching-sigs)]
+    (cond
+     (= 1 (count matching-sigs))
+     (let [args-and-refs (map arg-and-ref args)
+           refs (mapv second args-and-refs)
+           varargs? (has-varargs? args)
+           elements (arg-elements refs)]
+       [(mapv first args-and-refs)
+        `(do
+           (schema/validate
+            ~(arg-schema (rest sig) elements varargs?)
+            ~(if (and varargs? (not (map? (last args))))
+               `(concat
+                 ~(vec (butlast elements))
+                 ~(last elements))
+               elements))
+            (let [r# (do ~@body)]
+             (schema/validate ~(first sig) r#)
+             r#))])
+
+     (empty? matching-sigs)
+     (throw
+      (ex-info (str "No matching arity in :sig for " args)
+               {:sig sigs
+                :args args}))
+
+     (> (count matching-sigs) 1)
+     (throw
+      (ex-info (str "More than one matching arity in :sig for " args)
+               {:sig sigs
+                :args args})))))
 
 (defn validate-arguments
   "A middleware that takes :sig metadata as a sequence of schema
