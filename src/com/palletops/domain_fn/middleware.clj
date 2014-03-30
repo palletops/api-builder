@@ -127,9 +127,9 @@
                 :args args}))
      :else sig)))
 
-(defn- validate-arguments-form
+(defn- validate-sig-arity
   "Convert a body-arg to assert that arguments match schemas. "
-  [{:keys [args conditions body] :as arity} sigs]
+  [sigs {:keys [args conditions body] :as arity}]
   {:pre [(schema/validate ArityMap arity)]
    :post [(schema/validate ArityMap %)]}
   (let [sig (matching-sig arity sigs)
@@ -151,19 +151,17 @@
                       (update-in [:post] (fnil conj [])
                                  `(schema/validate ~(first sig) ~'%))))))
 
-(defn validate-arguments
+(defn validate-sig
   "A middleware that takes :sig metadata as a sequence of schema
   sequences (one for each arity) and asserts all arguments match one
   of the schema sequences.  The first element of each :sig element is
   the return type."
   []
-  (fn validate-arguments [m]
+  (fn validate-sig [m]
     {:pre [(schema/validate DefnMap m)]
      :post [(schema/validate DefnMap %)]}
     (if *assert*
-      (update-in m [:arities]
-                 (fn [ba]
-                   (map
-                    #(validate-arguments-form % (-> m :meta :sig))
-                    ba)))
+      (let [sigs (-> m :meta :sig)]
+        (update-in m [:arities]
+                   (fn [arity] (map #(validate-sig-arity sigs %) arity))))
       m)))

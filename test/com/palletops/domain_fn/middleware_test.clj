@@ -72,9 +72,9 @@
     (is (= '[a a] (arg-and-ref 'a)))))
 
 
-;;; # Test validate-arguments
+;;; # Test validate-sig
 (dfn/def-defn defn-validate-args
-  [(validate-arguments)])
+  [(validate-sig)])
 
 ;; (defn-validate-args v-arg-compile-error [x] x) ;; should give compile error
 
