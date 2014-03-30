@@ -1,6 +1,7 @@
 (ns com.palletops.domain-fn.middleware
   "Middleware for domain functions"
   (:require
+   [com.palletops.domain-fn :refer [ArityMap DefnMap]]
    [schema.core :as schema]))
 
 
@@ -17,25 +18,29 @@
 
 (defn- validate-errors-form
   "Convert a body-arg to assert that exceptions match error-schemas."
-  [[args & body] test-filter-pred error-schemas]
+  [{:keys [args conditions body] :as arity} test-filter-pred error-schemas]
+  {:pre [(schema/validate ArityMap arity)]
+   :post [(schema/validate ArityMap %)]}
   (let [ex (gensym "e")]
-    [args `(try
-             ~@body
-             (catch Exception ~ex
-               (when (~test-filter-pred ~ex)
-                 ~(if (seq error-schemas)
-                    `(when (schema/check
-                            (schema/either ~@error-schemas)
-                            (ex-data ~ex))
-                       (throw
-                        (ex-info "Error thrown doesn't match :errors schemas"
+    (assoc arity :body
+           `[~@(if conditions [conditions])
+             (try
+               ~@body
+               (catch Exception ~ex
+                 (when (~test-filter-pred ~ex)
+                   ~(if (seq error-schemas)
+                      `(when (schema/check
+                              (schema/either ~@error-schemas)
+                              (ex-data ~ex))
+                         (throw
+                          (ex-info "Error thrown doesn't match :errors schemas"
+                                   {:exception ~ex}
+                                   ~ex)))
+                      `(throw
+                        (ex-info "Error thrown but no schemas to match against"
                                  {:exception ~ex}
-                                 ~ex)))
-                    `(throw
-                      (ex-info "Error thrown but no schemas to match against"
-                               {:exception ~ex}
-                               ~ex))))
-               (throw ~ex)))]))
+                                 ~ex))))
+                 (throw ~ex)))])))
 
 (defn validate-errors
   "A middleware that takes :errors metadata as a sequence of schemas,
@@ -44,8 +49,10 @@
   enabled at compile time with *validate-errors*."
   [test-filter-pred]
   (fn validate-errors [m]
+    {:pre [(schema/validate DefnMap m)]
+     :post [(schema/validate DefnMap %)]}
     (if (and *assert* *validate-errors*)
-      (update-in m [:body-args]
+      (update-in m [:arities]
                  (fn [ba]
                    (map
                     #(validate-errors-form
@@ -102,30 +109,11 @@
                  :else arg)]
     [arg arg-ref]))
 
-(defn- validate-arguments-form
-  "Convert a body-arg to assert that arguments match schemas. "
-  [[args & body] sigs]
+(defn- matching-sig
+  [{:keys [args]} sigs]
   (let [matching-sigs (filter #(arg-count-matches? (arg-elements args) %) sigs)
         sig (first matching-sigs)]
     (cond
-     (= 1 (count matching-sigs))
-     (let [args-and-refs (map arg-and-ref args)
-           refs (mapv second args-and-refs)
-           varargs? (has-varargs? args)
-           elements (arg-elements refs)]
-       [(mapv first args-and-refs)
-        `(do
-           (schema/validate
-            ~(arg-schema (rest sig) elements varargs?)
-            ~(if (and varargs? (not (map? (last args))))
-               `(concat
-                 ~(vec (butlast elements))
-                 ~(last elements))
-               elements))
-            (let [r# (do ~@body)]
-             (schema/validate ~(first sig) r#)
-             r#))])
-
      (empty? matching-sigs)
      (throw
       (ex-info (str "No matching arity in :sig for " args)
@@ -136,7 +124,32 @@
      (throw
       (ex-info (str "More than one matching arity in :sig for " args)
                {:sig sigs
-                :args args})))))
+                :args args}))
+     :else sig)))
+
+(defn- validate-arguments-form
+  "Convert a body-arg to assert that arguments match schemas. "
+  [{:keys [args conditions body] :as arity} sigs]
+  {:pre [(schema/validate ArityMap arity)]
+   :post [(schema/validate ArityMap %)]}
+  (let [sig (matching-sig arity sigs)
+        args-and-refs (map arg-and-ref args)
+        refs (mapv second args-and-refs)
+        varargs? (has-varargs? args)
+        elements (arg-elements refs)]
+    (assoc arity
+      :args (mapv first args-and-refs)
+      :body `(do
+               (schema/validate
+                ~(arg-schema (rest sig) elements varargs?)
+                ~(if (and varargs? (not (map? (last args))))
+                   `(concat
+                     ~(vec (butlast elements))
+                     ~(last elements))
+                   elements))
+               (let [r# (do ~@body)]
+                 (schema/validate ~(first sig) r#)
+                 r#)))))
 
 (defn validate-arguments
   "A middleware that takes :sig metadata as a sequence of schema
@@ -145,8 +158,10 @@
   the return type."
   []
   (fn validate-arguments [m]
+    {:pre [(schema/validate DefnMap m)]
+     :post [(schema/validate DefnMap %)]}
     (if *assert*
-      (update-in m [:body-args]
+      (update-in m [:arities]
                  (fn [ba]
                    (map
                     #(validate-arguments-form % (-> m :meta :sig))
