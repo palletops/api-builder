@@ -139,17 +139,17 @@
         elements (arg-elements refs)]
     (assoc arity
       :args (mapv first args-and-refs)
-      :body `(do
-               (schema/validate
-                ~(arg-schema (rest sig) elements varargs?)
-                ~(if (and varargs? (not (map? (last args))))
-                   `(concat
-                     ~(vec (butlast elements))
-                     ~(last elements))
-                   elements))
-               (let [r# (do ~@body)]
-                 (schema/validate ~(first sig) r#)
-                 r#)))))
+      :conditions (-> (or conditions {})
+                      (update-in [:pre] (fnil conj [])
+                                 `(schema/validate
+                                   ~(arg-schema (rest sig) elements varargs?)
+                                   ~(if (and varargs? (not (map? (last args))))
+                                      `(concat
+                                        ~(vec (butlast elements))
+                                        ~(last elements))
+                                      elements)))
+                      (update-in [:post] (fnil conj [])
+                                 `(schema/validate ~(first sig) ~'%))))))
 
 (defn validate-arguments
   "A middleware that takes :sig metadata as a sequence of schema
