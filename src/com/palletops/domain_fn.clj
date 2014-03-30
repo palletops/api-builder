@@ -4,6 +4,15 @@
    [clojure.tools.macro :refer [name-with-attributes]]
    [schema.core :as schema]))
 
+(defn assert*
+  "Evaluates expr and throws an exception if it does not evaluate to
+  logical true.  The exception message is constructed using `format`
+  and the supplied `message`, passing in the additional `args` with
+  pr-str called on them.  Returns x if it is logically true."
+  [x message & args]
+  (or x
+      (throw (new AssertionError (apply format message args)))))
+
 (def defn-arglists (vec (:arglists (meta #'defn))))
 
 (def ArityMap

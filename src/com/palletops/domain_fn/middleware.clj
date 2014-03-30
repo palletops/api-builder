@@ -1,9 +1,8 @@
 (ns com.palletops.domain-fn.middleware
   "Middleware for domain functions"
   (:require
-   [com.palletops.domain-fn :refer [ArityMap DefnMap]]
+   [com.palletops.domain-fn :refer [assert* ArityMap DefnMap]]
    [schema.core :as schema]))
-
 
 ;;; # Add Metadata
 (defn add-meta
@@ -61,6 +60,10 @@
       m)))
 
 ;;; # Validate arguments
+(def SigMap
+  {:args [schema/Any]
+   :return schema/Any})
+
 (defn- arg-elements
   "Return the elements of an arg vector ignoring any '& symbol."
   [args]
@@ -89,7 +92,8 @@
 
 (defn- arg-count-matches?
   [args sig]
-  (= (inc (count args)) (count sig)))
+  {:pre [(schema/validate SigMap sig)]}
+  (= (count args) (count (:args sig))))
 
 (defn arg-and-ref
   "Ensure a symbolic argument, arg, can be referred to.
@@ -111,6 +115,7 @@
 
 (defn- matching-sig
   [{:keys [args]} sigs]
+  {:post [(schema/validate SigMap %)]}
   (let [matching-sigs (filter #(arg-count-matches? (arg-elements args) %) sigs)
         sig (first matching-sigs)]
     (cond
@@ -133,23 +138,35 @@
   {:pre [(schema/validate ArityMap arity)]
    :post [(schema/validate ArityMap %)]}
   (let [sig (matching-sig arity sigs)
+        varargs? (has-varargs? args)
         args-and-refs (map arg-and-ref args)
         refs (mapv second args-and-refs)
-        varargs? (has-varargs? args)
         elements (arg-elements refs)]
     (assoc arity
       :args (mapv first args-and-refs)
       :conditions (-> (or conditions {})
                       (update-in [:pre] (fnil conj [])
                                  `(schema/validate
-                                   ~(arg-schema (rest sig) elements varargs?)
+                                   ~(arg-schema (:args sig) elements varargs?)
                                    ~(if (and varargs? (not (map? (last args))))
                                       `(concat
                                         ~(vec (butlast elements))
                                         ~(last elements))
                                       elements)))
                       (update-in [:post] (fnil conj [])
-                                 `(schema/validate ~(first sig) ~'%))))))
+                                 `(schema/validate ~(:return sig) ~'%))))))
+
+(defn sig-map
+  "Take a sig element and convert it into a map."
+  [sig]
+  {:pre [(vector? sig)]
+   :post [(schema/validate SigMap %)]}
+  (let [n (count sig)]
+    (if (= :- (sig (- n 2)))
+      {:args (subvec sig 0 (- n 2))
+       :return (last sig)}
+      {:args (subvec sig 0 (dec n))
+       :return (last sig)})))
 
 (defn validate-sig
   "A middleware that takes :sig metadata as a sequence of schema
@@ -162,6 +179,13 @@
      :post [(schema/validate DefnMap %)]}
     (if *assert*
       (let [sigs (-> m :meta :sig)]
+        (assert* (sequential? sigs)
+                 ":sig must be a sequence of vectors, but is %s" sigs)
+        (assert*
+         (every? vector? sigs)
+         ":sig must be a sequence of vectors, but has non-vector elements %s"
+         (remove vector? sigs))
         (update-in m [:arities]
-                   (fn [arity] (map #(validate-sig-arity sigs %) arity))))
+                   (fn [arity]
+                     (map #(validate-sig-arity (map sig-map sigs) %) arity))))
       m)))

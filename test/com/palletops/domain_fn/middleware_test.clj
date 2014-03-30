@@ -79,32 +79,32 @@
 ;; (defn-validate-args v-arg-compile-error [x] x) ;; should give compile error
 
 (defn-validate-args v-arg-kw
-  {:sig [[schema/Keyword schema/Any]]}
+  {:sig [[schema/Any :- schema/Keyword]]}
   [x]
   x)
 
 (defn-validate-args v-arg-map
-  {:sig [[schema/Keyword {schema/Any schema/Any}]]}
+  {:sig [[{schema/Any schema/Any} :- schema/Keyword]]}
   [{:keys [x]}]
   x)
 
 (defn-validate-args v-arg-vec
-  {:sig [[schema/Keyword [(schema/one schema/Any "x")]]]}
+  {:sig [[[(schema/one schema/Any "x")] :- schema/Keyword]]}
   [[x]]
   x)
 
 (defn-validate-args v-arg-vararg
-  {:sig [[schema/Keyword schema/Any]]}
+  {:sig [[schema/Any schema/Keyword]]}
   [& x]
   (first x))
 
 (defn-validate-args v-arg-map-vararg
-  {:sig [[schema/Keyword {schema/Any schema/Any}]]}
+  {:sig [[{schema/Any schema/Any} schema/Keyword]]}
   [& {:keys [x]}]
   x)
 
 (defn-validate-args v-arg-vec-vararg
-  {:sig [[schema/Keyword (schema/one schema/Any "x")]]}
+  {:sig [[(schema/one schema/Any "x") :- schema/Keyword]]}
   [& [x]]
   x)
 
