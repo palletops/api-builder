@@ -13,6 +13,10 @@ define a `defn` form using a list of middleware.
 (def-defn mydefn middleware)
 ```
 
+A middleware is a function that takes and returns a
+[`DefnMap`](https://github.com/palletops/domain-fn/blob/master/src/com/palletops/domain_fn.clj#L16).
+
+
 ## Built in Middleware
 
 The `add-meta` middleware can be used to add constant values to a

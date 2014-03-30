@@ -6,14 +6,17 @@
 
 (def defn-arglists (vec (:arglists (meta #'defn))))
 
-(def ArityMap {:args [schema/Any]
-               (schema/optional-key :conditions)
-               {(schema/optional-key :pre) [schema/Any]
-                (schema/optional-key :post) [schema/Any]}
-               :body [schema/Any]})
-(def DefnMap {:name clojure.lang.Symbol
-              :arities [ArityMap]
-              :meta {schema/Keyword schema/Any}})
+(def ArityMap
+  {:args [schema/Any]
+   (schema/optional-key :conditions)
+   {(schema/optional-key :pre) [schema/Any]
+    (schema/optional-key :post) [schema/Any]}
+   :body [schema/Any]})
+
+(def DefnMap
+  {:name clojure.lang.Symbol
+   :arities [ArityMap]
+   :meta {schema/Keyword schema/Any}})
 
 (defn arity-map
   [args]
