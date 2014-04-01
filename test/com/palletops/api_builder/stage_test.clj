@@ -1,8 +1,8 @@
-(ns com.palletops.domain-fn.middleware-test
+(ns com.palletops.api-builder.stage-test
   (:require
    [clojure.test :refer :all]
-   [com.palletops.domain-fn :as dfn]
-   [com.palletops.domain-fn.middleware :refer :all]
+   [com.palletops.api-builder :as dfn]
+   [com.palletops.api-builder.stage :refer :all]
    [schema.core :as schema]))
 
 ;;; # Test add-meta

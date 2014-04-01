@@ -1,7 +1,7 @@
-(ns com.palletops.domain-fn-test
+(ns com.palletops.api-builder-test
   (:require
    [clojure.test :refer :all]
-   [com.palletops.domain-fn :refer :all]))
+   [com.palletops.api-builder :refer :all]))
 
 (deftest defn-map-test
   (is (= {:name 'f-name

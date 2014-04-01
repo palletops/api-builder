@@ -1,7 +1,7 @@
-(ns com.palletops.domain-fn.middleware
-  "Middleware for domain functions"
+(ns com.palletops.api-builder.stage
+  "Stages for domain functions"
   (:require
-   [com.palletops.domain-fn :refer [assert* ArityMap DefnMap]]
+   [com.palletops.api-builder :refer [assert* ArityMap DefnMap]]
    [schema.core :as schema]))
 
 ;;; # Add Metadata
@@ -42,7 +42,7 @@
                  (throw ~ex)))])))
 
 (defn validate-errors
-  "A middleware that takes :errors metadata as a sequence of schemas,
+  "A stage that takes :errors metadata as a sequence of schemas,
   and asserts all exception data matches the one of the schemas.  Only
   tests exceptions that pass test-filter-pred.  Checking must be
   enabled at compile time with *validate-errors*."
@@ -169,7 +169,7 @@
        :return (last sig)})))
 
 (defn validate-sig
-  "A middleware that takes :sig metadata as a sequence of schema
+  "A stage that takes :sig metadata as a sequence of schema
   sequences (one for each arity) and asserts all arguments match one
   of the schema sequences.  The first element of each :sig element is
   the return type."

@@ -1,4 +1,4 @@
-(ns com.palletops.domain-fn
+(ns com.palletops.api-builder
   "Build augmented defn forms"
   (:require
    [clojure.tools.macro :refer [name-with-attributes]]
@@ -79,9 +79,10 @@
      mw)))
 
 (defmacro def-defn
-  "Define a defn form"
-  [name middleware]
+  "Define a defn form, `name`, using the behaviour specified in the
+  sequence `stages`."
+  [name stages]
   `(defmacro ~name
      {:arglists '~defn-arglists}
      [n# & args#]
-     (defn-impl ~middleware n# args#)))
+     (defn-impl ~stages n# args#)))
