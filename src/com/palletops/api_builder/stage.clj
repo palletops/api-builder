@@ -202,8 +202,10 @@
 (defn format-sigs
   [sigs]
   (str \newline \newline
-       "    "
-       (join "\n    " (map format-sig sigs))))
+       "## Function Signatures\n"
+       (apply str
+            (for [s (map format-sig sigs)]
+              (str "\n  - " s)))))
 
 (defn add-sig-doc
   "Add :sig the function's doc string."
