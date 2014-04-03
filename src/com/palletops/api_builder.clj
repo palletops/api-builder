@@ -25,7 +25,7 @@
 (def DefnMap
   {:name clojure.lang.Symbol
    :arities [ArityMap]
-   :meta {schema/Keyword schema/Any}})
+   :meta (schema/maybe {schema/Keyword schema/Any})})
 
 (defn arity-map
   [args]

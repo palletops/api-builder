@@ -37,6 +37,13 @@ sequence of schema sequences.  The first value of each sequence is the
 return type.  A vararg final arg is represented as a single schema
 that should match all varargs.
 
+The `log-scope` stage allows setting of [log-config][log-config]
+logging scopes for `:domain`, `:tags`, and `:context`.
+
+The `log-entry` stage logs function entry at `:trace` using [Timbre][timbre].
+
+The `log-exit` stage logs function exit at `:trace` using [Timbre][timbre].
+
 ## Defining Stages
 
 A stage is a function that takes and a
@@ -50,3 +57,6 @@ Copyright © 2014 Hugo Duncan
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
+
+[log-config]: https://github.com/palletops/log-config "log-config"
+[timbre]: https://github.com/ptaoussanis/timbre "Timbre"
