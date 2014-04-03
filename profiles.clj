@@ -1,4 +1,4 @@
-{:dev {:plugins [[lein-pallet-release "0.1.3"]],
+{:dev {:plugins [[lein-pallet-release "RELEASE"]],
        :pallet-release
        {:url "https://pbors:${GH_TOKEN}@github.com/palletops/api-builder.git",
         :branch "master"}},
