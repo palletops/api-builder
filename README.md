@@ -23,6 +23,30 @@ define functions augmented with error validation and additional metadata:
 (def-defn core-defn stages)
 ```
 
+You can use the `api-defn` macro, which applies all the built in stages.
+
+```clj
+> (require '[com.palletops.api-builder.api :refer [api-defn]])
+> (require '[schema.core :as s])
+
+> (api-defn my-fun
+   "My API fun"
+   {:domain :main-api
+    :sig [[s/Any :- s/Keyword]]
+    :errors [{:type :example}]}
+    [x]
+    (if (string? x)
+      (keyword x)
+      (throw
+        (ex-info "Can't create a keyword"
+          {:type :example)))))
+
+> (doc my-fun)
+user/my-fun
+
+[Any -> Keyword]
+```
+
 ## Built in Stages
 
 Api-builder comes with some useful pre-defined stages:
