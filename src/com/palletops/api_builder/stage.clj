@@ -3,7 +3,8 @@
   (:require
    [clojure.string :refer [join]]
    [clojure.walk :refer [postwalk]]
-   [com.palletops.api-builder :refer [assert* ArityMap DefnMap]]
+   [com.palletops.api-builder.core
+    :refer [arg-and-ref assert* ArityMap DefnMap]]
    [schema.core :as schema]))
 
 ;;; # Add Metadata
@@ -96,24 +97,6 @@
   [args sig]
   {:pre [(schema/validate SigMap sig)]}
   (= (count args) (count (:args sig))))
-
-(defn arg-and-ref
-  "Ensure a symbolic argument, arg, can be referred to.
-  Returns a tuple with a modifed argument and an argument reference."
-  [arg]
-  (let [arg (cond
-             (map? arg) (if (not (:as arg))
-                          (assoc arg :as (gensym "arg"))
-                          arg)
-             (vector? arg) (if (not (= :as (last (butlast arg))))
-                             (vec (concat arg [:as (gensym "arg")]))
-                             arg)
-             :else arg)
-        arg-ref (cond
-                 (map? arg) (:as arg)
-                 (vector? arg) (last arg)
-                 :else arg)]
-    [arg arg-ref]))
 
 (defn- matching-sig
   [{:keys [args]} sigs]

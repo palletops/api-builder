@@ -1,8 +1,7 @@
 (ns com.palletops.api-builder.stage.log
   "Stages to add logging"
   (:require
-   [com.palletops.api-builder :refer [DefnMap]]
-   [com.palletops.api-builder.stage :refer [arg-and-ref]]
+   [com.palletops.api-builder.core :refer [arg-and-ref DefnMap]]
    [com.palletops.log-config.timbre
     :refer [with-context with-domain with-tags]]
    [schema.core :as schema]

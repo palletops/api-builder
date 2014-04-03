@@ -55,23 +55,6 @@
   (is (thrown-with-msg?
        clojure.lang.ExceptionInfo #"some unkown error" (v-e-a-off))))
 
-(deftest arg-and-ref-test
-  (testing "fully specified map"
-    (is (= '[{:keys [a b] :as c} c] (arg-and-ref '{:keys [a b] :as c}))))
-  (testing "map with no as"
-    (let [[arg ref] (arg-and-ref '{:keys [a b]})]
-      (is ref)
-      (is (= (:as arg) ref))))
-  (testing "fully specified vector"
-    (is (= '[[a b :as c] c] (arg-and-ref '[a b :as c]))))
-  (testing "vector with no as"
-    (let [[arg ref] (arg-and-ref '[a b])]
-      (is ref)
-      (is (= (last arg) ref))))
-  (testing "plain symbol"
-    (is (= '[a a] (arg-and-ref 'a)))))
-
-
 ;;; # Test validate-sig
 (dfn/def-defn defn-validate-args
   [(validate-sig)])
