@@ -2,30 +2,10 @@
   "Build augmented defn forms"
   (:require
    [clojure.tools.macro :refer [name-with-attributes]]
+   [com.palletops.api-builder.core :refer [assert* ArityMap DefnMap]]
    [schema.core :as schema]))
 
-(defn assert*
-  "Evaluates expr and throws an exception if it does not evaluate to
-  logical true.  The exception message is constructed using `format`
-  and the supplied `message`, passing in the additional `args` with
-  pr-str called on them.  Returns x if it is logically true."
-  [x message & args]
-  (or x
-      (throw (new AssertionError (apply format message args)))))
-
 (def defn-arglists (vec (:arglists (meta #'defn))))
-
-(def ArityMap
-  {:args [schema/Any]
-   (schema/optional-key :conditions)
-   {(schema/optional-key :pre) [schema/Any]
-    (schema/optional-key :post) [schema/Any]}
-   :body [schema/Any]})
-
-(def DefnMap
-  {:name clojure.lang.Symbol
-   :arities [ArityMap]
-   :meta {schema/Keyword schema/Any}})
 
 (defn arity-map
   [args]

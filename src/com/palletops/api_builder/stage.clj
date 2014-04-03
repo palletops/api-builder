@@ -1,7 +1,10 @@
 (ns com.palletops.api-builder.stage
   "Stages for domain functions"
   (:require
-   [com.palletops.api-builder :refer [assert* ArityMap DefnMap]]
+   [clojure.string :refer [join]]
+   [clojure.walk :refer [postwalk]]
+   [com.palletops.api-builder.core
+    :refer [arg-and-ref assert* ArityMap DefnMap]]
    [schema.core :as schema]))
 
 ;;; # Add Metadata
@@ -95,24 +98,6 @@
   {:pre [(schema/validate SigMap sig)]}
   (= (count args) (count (:args sig))))
 
-(defn arg-and-ref
-  "Ensure a symbolic argument, arg, can be referred to.
-  Returns a tuple with a modifed argument and an argument reference."
-  [arg]
-  (let [arg (cond
-             (map? arg) (if (not (:as arg))
-                          (assoc arg :as (gensym "arg"))
-                          arg)
-             (vector? arg) (if (not (= :as (last (butlast arg))))
-                             (vec (concat arg [:as (gensym "arg")]))
-                             arg)
-             :else arg)
-        arg-ref (cond
-                 (map? arg) (:as arg)
-                 (vector? arg) (last arg)
-                 :else arg)]
-    [arg arg-ref]))
-
 (defn- matching-sig
   [{:keys [args]} sigs]
   {:post [(schema/validate SigMap %)]}
@@ -191,3 +176,38 @@
                    (fn [arity]
                      (map #(validate-sig-arity (map sig-map sigs) %) arity))))
       m)))
+
+
+;;; # Add sig to doc string
+(defn remove-schema-ns
+  [expr]
+  (postwalk
+   (fn [x]
+     (if (symbol? x)
+       (if-let [n (namespace x)]
+         (let [tn ((symbol n) (ns-aliases *ns*))]
+           (if (or (and tn (= (ns-name tn) 'schema.core))
+                   (= (symbol n) 'schema.core))
+             (symbol (name x))
+             x))
+         x)
+       x))
+   expr))
+
+(defn format-sig
+  [sig]
+  (let [n (count sig)]
+    (join " " (map remove-schema-ns (assoc-in sig [(- n 2)] "->")))))
+
+(defn format-sigs
+  [sigs]
+  (str \newline \newline
+       "    "
+       (join "\n    " (map format-sig sigs))))
+
+(defn add-sig-doc
+  "Add :sig the function's doc string."
+  []
+  (fn add-meta [defn-map]
+    (update-in defn-map [:meta :doc]
+               str (format-sigs (-> defn-map :meta :sig)))))
