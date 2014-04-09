@@ -7,6 +7,9 @@ data schemas, logging of parameters, augmentation of docstring based
 on parameter schemas, or even tagging of functions for later grouping
 in documentation.
 
+To use it, add `[com.palletops/api-builder "0.1.3"]` to your
+`:dependencies`.
+
 ## Motivation
 
 When writing libraries we usually want to provide an API for them --a
