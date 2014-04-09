@@ -1,3 +1,8 @@
+## 0.1.3
+
+- Add def-fn for defining fn like forms
+  Allow definition of fn like forms using stages.
+
 ## 0.1.2
 
 - Allow doc string on def-defn
