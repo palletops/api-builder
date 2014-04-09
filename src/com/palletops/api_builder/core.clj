@@ -15,6 +15,9 @@
    :arities [ArityMap]
    :meta (schema/maybe {schema/Keyword schema/Any})})
 
+(def FnMap
+  (assoc DefnMap :name (schema/maybe clojure.lang.Symbol)))
+
 (defn assert*
   "Evaluates expr and throws an exception if it does not evaluate to
   logical true.  The exception message is constructed using `format`
