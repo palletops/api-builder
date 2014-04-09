@@ -61,8 +61,10 @@
 (defmacro def-defn
   "Define a defn form, `name`, using the behaviour specified in the
   sequence `stages`."
-  [name stages]
-  `(defmacro ~name
-     {:arglists '~defn-arglists}
-     [n# & args#]
-     (defn-impl ~stages n# args#)))
+  {:arglists '[[name doc? attr-map? stages]]}
+  [name & args]
+  (let [[name [stages]] (name-with-attributes name args)]
+    `(defmacro ~name
+       {:arglists '~defn-arglists}
+       [n# & args#]
+       (defn-impl ~stages n# args#))))
