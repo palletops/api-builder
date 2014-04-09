@@ -9,10 +9,15 @@
 (dfn/def-defn defn-add-meta
   [(add-meta {::x :x})])
 
+(dfn/def-fn fn-add-meta
+  [(add-meta {::x :x})])
+
 (defn-add-meta f [])
 
 (deftest add-meta-test
-  (is (= :x (-> #'f meta ::x))))
+  (is (= :x (-> #'f meta ::x)))
+  (let [f (fn-add-meta f [])
+        g (fn-add-meta [])]))
 
 ;;; # Test validate-errors
 
