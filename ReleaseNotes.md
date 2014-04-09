@@ -1,3 +1,10 @@
+## 0.1.2
+
+- Allow doc string on def-defn
+  Also allows adding metadata.
+
+- Tweak signature addition to docstring.
+
 ## 0.1.1
 
 - Add a defn-api that uses all the stages
