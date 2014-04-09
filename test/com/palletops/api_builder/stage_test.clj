@@ -57,6 +57,7 @@
 
 ;;; # Test validate-sig
 (dfn/def-defn defn-validate-args
+  "defn with sig validation"
   [(validate-sig)])
 
 ;; (defn-validate-args v-arg-compile-error [x] x) ;; should give compile error

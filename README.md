@@ -7,6 +7,24 @@ data schemas, logging of parameters, augmentation of docstring based
 on parameter schemas, or even tagging of functions for later grouping
 in documentation.
 
+## Motivation
+
+When writing libraries we usually want to provide an API for them --a
+subset of all the functions in the library that are meant for users to
+use-- and we like to treat these API functions differently from the
+rest of (more internal) functions. For example, we want API functions
+to:
+
+  - check the format and type of parameters
+  - add the function's signature into the docstring
+  - add information about which errors the function can return
+  - ... and even be able group API functions in different groups based
+    on domain or other concepts.
+
+This library allows us to do that by building our own `defn` macros
+for API functions with a custom set of stages that each add new
+properties to the functions created.
+
 ## Usage
 
 This library provides `def-defn` to create new versions of clojure's
@@ -14,22 +32,28 @@ This library provides `def-defn` to create new versions of clojure's
 behavior. This new behavior is defined in a pipeline of _stage_
 functions, or _stages_.
 
-In the following example, we are defining a `core-defn` macro to
-define functions augmented with error validation and additional metadata:
+For example, the provided `defn-api` macro creates functions with with
+error validation, signature validation, addition of signature in
+docstring, and a few logging concerns. This macro is defined as:
 
 ```clj
-(def stages [validate-errors add-meta])
-
-(def-defn core-defn stages)
+(def-defn defn-api
+  [(validate-errors (constantly true))
+   (validate-sig)
+   (add-sig-doc)
+   (log-scope)
+   (log-entry)
+   (log-exit)])
 ```
 
-You can use the `api-defn` macro, which applies all the built in stages.
+Once this `api-defn` macro is defined, we can use it do define our API
+functions, for example:
 
 ```clj
-> (require '[com.palletops.api-builder.api :refer [api-defn]])
+> (require '[com.palletops.api-builder.api-defn :refer [defn-api]])
 > (require '[schema.core :as s])
 
-> (api-defn my-fun
+> (defn-api my-fun
    "My API fun"
    {:domain :main-api
     :sig [[s/Any :- s/Keyword]]
@@ -39,12 +63,29 @@ You can use the `api-defn` macro, which applies all the built in stages.
       (keyword x)
       (throw
         (ex-info "Can't create a keyword"
-          {:type :example)))))
+          {:type :example}))))
+```
 
+We can then see how the `add-sig-doc` stage added the signature to the docstring:
+
+```clj
 > (doc my-fun)
+-------------------------
 user/my-fun
+([x])
+  My API fun
 
-[Any -> Keyword]
+## Function Signatures
+  - Str -> Keyword
+```
+
+And also how the parameter checks are in place:
+
+```clj
+> (my-fun "my-key")
+:my-key
+> (my-fun 1)
+ExceptionInfo Value does not match schema: [(named (not (instance? java.lang.String 1)) "x")]  schema.core/validate (core.clj:165)
 ```
 
 ## Built in Stages
