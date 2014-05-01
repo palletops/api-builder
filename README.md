@@ -53,7 +53,7 @@ Once this `api-defn` macro is defined, we can use it do define our API
 functions, for example:
 
 ```clj
-> (require '[com.palletops.api-builder.api-defn :refer [defn-api]])
+> (require '[com.palletops.api-builder.api :refer [defn-api]])
 > (require '[schema.core :as s])
 
 > (defn-api my-fun
