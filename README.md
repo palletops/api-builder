@@ -7,6 +7,9 @@ data schemas, logging of parameters, augmentation of docstring based
 on parameter schemas, or even tagging of functions for later grouping
 in documentation.
 
+To use it, add `[com.palletops/api-builder "0.1.4"]` to your
+`:dependencies`.
+
 ## Motivation
 
 When writing libraries we usually want to provide an API for them --a
@@ -50,7 +53,7 @@ Once this `api-defn` macro is defined, we can use it do define our API
 functions, for example:
 
 ```clj
-> (require '[com.palletops.api-builder.api-defn :refer [defn-api]])
+> (require '[com.palletops.api-builder.api :refer [defn-api]])
 > (require '[schema.core :as s])
 
 > (defn-api my-fun

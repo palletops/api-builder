@@ -1,3 +1,9 @@
+## 0.1.4
+
+- Fix namespace for defn-api
+
+- Fix namespace in README example for defn-api
+
 ## 0.1.3
 
 - Add def-fn for defining fn like forms
