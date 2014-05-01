@@ -1,4 +1,4 @@
-(ns com.palletops.api-builder.api-defn
+(ns com.palletops.api-builder.api
   "An API defn form that uses all stages"
   (:require
    [com.palletops.api-builder :refer [def-defn]]
