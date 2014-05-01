@@ -1,4 +1,4 @@
-(defproject com.palletops/api-builder "0.1.4-SNAPSHOT"
+(defproject com.palletops/api-builder "0.1.4"
   :description "Write api functions with domain information."
   :url "http://github.com/palletops/api-builder"
   :license {:name "Eclipse Public License"
