@@ -1,3 +1,12 @@
+## 0.1.5
+
+- Add stage to validate :sig only if present
+  The `validate-optional-sig` stage will validate the `:sig` metadata only 
+  if the `:sig` metadata is present.
+
+  Also makes the `add-sig-doc` stage conditional on the presence of the
+  `:sig` metadata.
+
 ## 0.1.4
 
 - Fix namespace for defn-api
