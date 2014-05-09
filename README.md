@@ -7,7 +7,7 @@ data schemas, logging of parameters, augmentation of docstring based
 on parameter schemas, or even tagging of functions for later grouping
 in documentation.
 
-To use it, add `[com.palletops/api-builder "0.1.4"]` to your
+To use it, add `[com.palletops/api-builder "0.1.5"]` to your
 `:dependencies`.
 
 ## Motivation
@@ -123,6 +123,10 @@ function schema is in itself a sequence of schema as defined by
 value of each sequence is the return type, followed for a schema for
 each argument in the function. A vararg final arg is represented as a
 single schema that should match all varargs.
+
+The `validate-optional-sig` stage validates the function's arguments
+and return values against the `:sig` metadata as for `validate-sig`,
+but only if the `:sig` metadata is specified.
 
 ### Logging
 

@@ -155,28 +155,41 @@
       {:args (subvec sig 0 (dec n))
        :return (last sig)})))
 
+(defn validate-sig*
+  [m]
+  {:pre [(schema/validate DefnMap m)]
+   :post [(schema/validate DefnMap %)]}
+  (if *assert*
+    (let [sigs (-> m :meta :sig)]
+      (assert* (sequential? sigs)
+               ":sig must be a sequence of vectors, but is %s" sigs)
+      (assert*
+       (every? vector? sigs)
+       ":sig must be a sequence of vectors, but has non-vector elements %s"
+       (remove vector? sigs))
+      (update-in m [:arities]
+                 (fn [arity]
+                   (map #(validate-sig-arity (map sig-map sigs) %) arity))))
+    m))
+
 (defn validate-sig
   "A stage that takes :sig metadata as a sequence of schema
   sequences (one for each arity) and asserts all arguments match one
-  of the schema sequences.  The first element of each :sig element is
+  of the schema sequences.  The last element of each :sig element is
   the return type."
   []
-  (fn validate-sig [m]
+  validate-sig*)
+
+(defn validate-optional-sig
+  "A stage that optionally takes :sig metadata and validates it with
+  validate-sig when it is present."
+  []
+  (fn validate-optionalsig [m]
     {:pre [(schema/validate DefnMap m)]
      :post [(schema/validate DefnMap %)]}
-    (if *assert*
-      (let [sigs (-> m :meta :sig)]
-        (assert* (sequential? sigs)
-                 ":sig must be a sequence of vectors, but is %s" sigs)
-        (assert*
-         (every? vector? sigs)
-         ":sig must be a sequence of vectors, but has non-vector elements %s"
-         (remove vector? sigs))
-        (update-in m [:arities]
-                   (fn [arity]
-                     (map #(validate-sig-arity (map sig-map sigs) %) arity))))
+    (if (-> m :meta :sig)
+      (validate-sig* m)
       m)))
-
 
 ;;; # Add sig to doc string
 (defn remove-schema-ns
@@ -208,8 +221,9 @@
               (str "\n  - " s)))))
 
 (defn add-sig-doc
-  "Add :sig the function's doc string."
+  "When given, add :sig metadata to the function's doc string."
   []
   (fn add-meta [defn-map]
-    (update-in defn-map [:meta :doc]
-               str (format-sigs (-> defn-map :meta :sig)))))
+    (if-let [sig (-> defn-map :meta :sig)]
+      (update-in defn-map [:meta :doc] str (format-sigs sig))
+      defn-map)))

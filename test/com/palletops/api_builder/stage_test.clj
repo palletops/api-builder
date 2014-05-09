@@ -142,6 +142,41 @@
          (v-arg-vec-vararg 'a))
         "validates incorrect return type ok")))
 
+
+
+
+
+
+;;; # Test validate-sig
+(dfn/def-defn defn-validate-optional-args
+  "defn with sig validation"
+  [(validate-optional-sig)])
+
+(defn-validate-optional-args v-optional-arg-kw
+  {:sig [[schema/Any :- schema/Keyword]]}
+  [x]
+  x)
+
+(defn-validate-optional-args v-optional-arg-no-sig
+  [x]
+  x)
+
+(deftest validate-optional-args-test
+  (testing "simple arg"
+    (is (= ::x (v-optional-arg-kw ::x))
+        "validate-optionals correct return type ok")
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo #"Value does not match schema"
+         (v-optional-arg-kw 'a))
+        "validate-optionals incorrect return type ok"))
+  (testing "no :sig"
+    (is (= ::x (v-optional-arg-no-sig ::x))
+        "validate-optionals correct return type ok")
+    (is (= 'a (v-optional-arg-no-sig 'a))
+        "allows no :sig")))
+
+;;; # Test add-sig
+
 (dfn/def-defn defn-add-sig-doc
   [(add-sig-doc)])
 
@@ -154,7 +189,11 @@
   {:sig [[schema/Any :- schema/Any]]}
   [x] x)
 
+(defn-add-sig-doc asd3
+  "Some doc"
+  [x] x)
+
 (deftest add-sig-doc-test
   (is (.contains (-> #'asd meta :doc) "Any -> Any"))
   (is (.contains (-> #'asd2 meta :doc) "Any -> Any"))
-  (is (.contains (-> #'asd2 meta :doc) "Some doc")))
+  (is (= (-> #'asd3 meta :doc) "Some doc")))
