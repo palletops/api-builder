@@ -124,6 +124,10 @@ value of each sequence is the return type, followed for a schema for
 each argument in the function. A vararg final arg is represented as a
 single schema that should match all varargs.
 
+The `validate-optional-sig` stage validates the function's arguments
+and return values against the `:sig` metadata as for `validate-sig`,
+but only if the `:sig` metadata is specified.
+
 ### Logging
 
 The `log-scope` stage allows setting of [log-config][log-config]
