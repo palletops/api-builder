@@ -139,9 +139,12 @@
                                         ~(last elements))
                                       elements)))
                       (update-in [:post] (fnil conj [])
-                                 `(or (schema/validate ~(:return sig) ~'%)
-                                      ;; nil could be valid
-                                      true))))))
+                                 `(or
+                                   (schema/validate
+                                    (schema/named ~(:return sig) "return value")
+                                    ~'%)
+                                   ;; nil could be a valid value
+                                   true))))))
 
 (defn sig-map
   "Take a sig element and convert it into a map."
