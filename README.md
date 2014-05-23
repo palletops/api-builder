@@ -1,6 +1,6 @@
 # api-builder
 
-A Clojure library to for writing APIs. API functions are augmented
+A Clojure library for writing APIs. API functions are augmented
 versions of standard functions. This augmentation happens at compile
 time and can bring features like validation of parameters based on
 data schemas, logging of parameters, augmentation of docstring based
