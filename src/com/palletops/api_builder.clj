@@ -1,12 +1,17 @@
 (ns com.palletops.api-builder
   "Build augmented defn forms"
   (:require
+   [clojure.string :as string]
    [clojure.tools.macro :refer [name-with-attributes]]
-   [com.palletops.api-builder.core :refer [assert* ArityMap DefnMap FnMap]]
+   [com.palletops.api-builder.core
+    :refer [assert* ArityMap DefnMap DefmethodMap DefmultiMap DefMap FnMap]]
    [schema.core :as schema]))
 
+;;; Capture the standard def forms' arglists
 (def ^:internal defn-arglists (vec (:arglists (meta #'defn))))
 (def ^:internal fn-arglists (vec (:arglists (meta #'fn))))
+(def ^:internal defmulti-arglists (vec (:arglists (meta #'defmulti))))
+(def ^:internal def-arglists '[[symbol doc-string? init?]])
 
 (defn- arity-map
   "Return a map with a destructured defn arity (args, conditions and
@@ -36,7 +41,8 @@
      :arities (if (vector? (first args))
                 [(arity-map args)]
                 (map arity-map args))
-     :meta m}))
+     :meta m
+     :type :defn}))
 
 (defn- fn-map
   "Return a map with destructured fn args."
@@ -51,7 +57,51 @@
      :arities (if (vector? (first args))
                 [(arity-map args)]
                 (map arity-map args))
-     :meta m}))
+     :meta m
+     :type :defn}))
+
+(defn- defmulti-map
+  "Return a map with destructured defmulti args."
+  [n args]
+  {:post [(schema/validate DefmultiMap %)]}
+  (let [[doc args] (if (string? (first args))
+                     [(first args) (rest args)]
+                     [nil args])
+        [attr-map args] (if (map? (first args))
+                          [(first args) (rest args)]
+                          [nil args])
+        [dispatch-fn & options] args
+        m (cond-> (merge (meta n) attr-map)
+                  doc (assoc :doc doc))]
+    {:name n
+     :arities [(arity-map args)]
+     :dispatch-fn dispatch-fn
+     :meta m
+     :options options
+     :type :defmulti}))
+
+(defn- defmethod-map
+  "Return a map with destructured defmethod args."
+  [n dispatch-val args]
+  {:post [(schema/validate DefmethodMap %)]}
+  {:name n
+   :dispatch-value dispatch-val
+   :arities [(arity-map args)]
+   :type :defmethod})
+
+(defn- def-map
+  "Return a map with destructured def args."
+  [n args]
+  {:post [(schema/validate DefMap %)]}
+  (let [[doc v] (if (= 1 (count args))
+                  [nil (first args)]
+                  args)
+        m (cond-> (meta n)
+                  doc (assoc :doc doc))]
+    {:name n
+     :value v
+     :meta m
+     :type :def}))
 
 (defn- arity-form
   "Return a form for the arity map."
@@ -75,6 +125,28 @@
      ~@(if (= 1 (count arities))
          (arity-form (first arities))
          (map arity-form arities))))
+
+(defn- defmulti-form
+  "Return a defmulti form for a defmulti map"
+  [{:keys [name arities meta dispatch-fn] :as m}]
+  {:pre [(schema/validate DefmultiMap m)]}
+  (assert* (= 1 (count arities)) "Defmulti may only have a single arity")
+  `(defmulti ~(with-meta name meta)
+    ~dispatch-fn))
+
+(defn- defmethod-form
+  "Return a defmulti form for a defmulti map"
+  [{:keys [name arities dispatch-value] :as m}]
+  {:pre [(schema/validate DefmethodMap m)]}
+  (assert* (= 1 (count arities)) "Defmethod may only have a single arity")
+  `(defmethod ~name ~dispatch-value
+     ~@(arity-form (first arities))))
+
+(defn- def-form
+  "Return a def form for a def map"
+  [{:keys [name value meta] :as m}]
+  {:pre [(schema/validate DefMap m)]}
+  `(def ~(with-meta name meta) ~value))
 
 (defn ^:internal defn-impl
   "Return a form to define a defn like macro, n, with arguments, args,
@@ -102,6 +174,45 @@
      (fn-map args)
      stages)))
 
+(defn ^:internal defmulti-impl
+  "Return a form to define a defmulti like macro, n, with arguments, args,
+  using stages."
+  [stages n args]
+  (defmulti-form
+    (reduce
+     (fn [m f]
+       {:pre [(schema/validate DefmultiMap m)]
+        :post [(schema/validate DefmultiMap %)]}
+       (f m))
+     (defmulti-map n args)
+     stages)))
+
+(defn ^:internal defmethod-impl
+  "Return a form to define a defmethod like macro, n, with arguments, args,
+  using stages."
+  [stages n dispatch-value args]
+  (defmethod-form
+    (reduce
+     (fn [m f]
+       {:pre [(schema/validate DefmethodMap m)]
+        :post [(schema/validate DefmethodMap %)]}
+       (f m))
+     (defmethod-map n dispatch-value args)
+     stages)))
+
+(defn ^:internal def-impl
+  "Return a form to define a def like macro, n, with arguments, args,
+  using stages."
+  [stages n args]
+  (def-form
+    (reduce
+     (fn [m f]
+       {:pre [(schema/validate DefMap m)]
+        :post [(schema/validate DefMap %)]}
+       (f m))
+     (def-map n args)
+     stages)))
+
 (defmacro def-defn
   "Define a defn form, `name`, using the behaviour specified in the
   sequence `stages`."
@@ -123,3 +234,36 @@
        {:arglists '~fn-arglists}
        [& args#]
        (fn-impl ~stages args#))))
+
+(defmacro def-defmulti
+  "Define a defmulti form, `name`, using the behaviour specified in
+  the sequence `stages`. Also defines a method macro for defining
+  associated methods.  The method macro is named the same as the
+  defmulti form, with multi replaced by method, or if the defmulti
+  form name doesn't contain \"multi\", then with \"-method\"
+  appended."
+  {:arglists '[[name doc? attr-map? stages]]} [name & args]
+  (let [[name [stages]] (name-with-attributes name args)
+        n (clojure.core/name name)
+        method-name (symbol (if (.contains n "multi")
+                              (string/replace n "multi" "method")
+                              (str n "-method")))]
+    `(do
+       (defmacro ~name
+         {:arglists '~defmulti-arglists}
+         [n# & args#]
+         (defmulti-impl ~stages n# args#))
+       (defmacro ~method-name
+         [n# dispatch-value# & args#]
+         (defmethod-impl ~stages n# dispatch-value# args#)))))
+
+(defmacro def-def
+  "Define a def form, `name`, using the behaviour specified in the
+  sequence `stages`."
+  {:arglists '[[name doc? attr-map? stages]]}
+  [name & args]
+  (let [[name [stages]] (name-with-attributes name args)]
+    `(defmacro ~name
+       {:arglists '~def-arglists}
+       [n# & args#]
+       (def-impl ~stages n# args#))))

@@ -1,11 +1,11 @@
 # api-builder
 
-A Clojure library for writing APIs. API functions are augmented
-versions of standard functions. This augmentation happens at compile
-time and can bring features like validation of parameters based on
-data schemas, logging of parameters, augmentation of docstring based
-on parameter schemas, or even tagging of functions for later grouping
-in documentation.
+A Clojure library for writing APIs. API functions and vars are
+augmented versions of standard functions and vars. This augmentation
+happens at compile time and can bring features like validation of
+parameters based on data schemas, logging of parameters, augmentation
+of docstring based on parameter schemas, or even tagging of functions
+for later grouping in documentation.
 
 To use it, add `[com.palletops/api-builder "0.1.5"]` to your
 `:dependencies`.
@@ -24,16 +24,22 @@ to:
   - ... and even be able group API functions in different groups based
     on domain or other concepts.
 
-This library allows us to do that by building our own `defn` macros
-for API functions with a custom set of stages that each add new
-properties to the functions created.
+This library allows us to do that by building our own `def`, `defn`
+and `defmulti` macros for API functions with a custom set of stages
+that each add new properties to the functions created.
 
 ## Usage
 
-This library provides `def-defn` to create new versions of clojure's
-`defn` forms. These custom `defn` forms augment the created functions with extra
-behavior. This new behavior is defined in a pipeline of _stage_
+This library provides forms to create new versions of clojure's `Var`
+defining forms.
+
+The `def-defn` form creates new versions of clojure's `defn`
+forms. These custom `defn` forms augment the created functions with
+extra behavior. This new behavior is defined in a pipeline of _stage_
 functions, or _stages_.
+
+Similarly, `def-def` creates enhanced versions of clojure's `def`
+forms, and `def-defmulti` enhanced versions of `defmulti` forms.
 
 For example, the provided `defn-api` macro creates functions with with
 error validation, signature validation, addition of signature in

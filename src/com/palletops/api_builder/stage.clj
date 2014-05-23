@@ -4,15 +4,18 @@
    [clojure.string :refer [join]]
    [clojure.walk :refer [postwalk]]
    [com.palletops.api-builder.core
-    :refer [arg-and-ref assert* ArityMap DefnMap]]
+    :refer [arg-and-ref assert* ArityMap
+            DefnMap DefMap DefmultiMap DefmethodMap DefFormMap]]
    [schema.core :as schema]))
 
 ;;; # Add Metadata
 (defn add-meta
-  "Add constant data to the function."
+  "Add constant metadata to the def form."
   [m]
-  (fn add-meta [defn-map]
-    (update-in defn-map [:meta] merge m)))
+  (fn add-meta [form-map]
+    (if (contains? form-map :meta) ; only if the form can have metadata
+      (update-in form-map [:meta] merge m)
+      form-map)))
 
 
 ;;; # Validate Errors
@@ -44,6 +47,46 @@
                                  ~ex))))
                  (throw ~ex)))])))
 
+(defn- add-validate-errors-form
+  [m errors test-filter-pred]
+  (update-in m [:arities]
+             (fn [ba]
+               (map #(validate-errors-form % test-filter-pred errors) ba))))
+
+
+(def validate-errors-impl nil)
+(defmulti validate-errors-impl
+  "A stage that takes :errors metadata as a sequence of schemas,
+  and asserts all exception data matches the one of the schemas.  Only
+  tests exceptions that pass test-filter-pred.  Checking must be
+  enabled at compile time with *validate-errors*."
+  (fn validate-errors-impl [form-map test-filter-pred]
+    {:pre [(schema/validate DefFormMap form-map)]}
+    (:type form-map)))
+
+
+(defmethod validate-errors-impl :defn
+  [m test-filter-pred]
+  {:post [(schema/validate DefnMap %)]}
+  (add-validate-errors-form m (-> m :meta :errors) test-filter-pred))
+
+(defmethod validate-errors-impl :defmulti
+  [m test-filter-pred]
+  {:post [(schema/validate DefmultiMap %)]}
+  m)
+
+(defmethod validate-errors-impl :defmethod
+  [m test-filter-pred]
+  {:post [(schema/validate DefmethodMap %)]}
+  (add-validate-errors-form
+   m (-> (resolve (:name m)) meta :errors) test-filter-pred))
+
+(defmethod validate-errors-impl :def
+  [m test-filter-pred]
+  (throw (ex-info
+          "Can not add a validate-errors stage to a def form."
+          {:m m})))
+
 (defn validate-errors
   "A stage that takes :errors metadata as a sequence of schemas,
   and asserts all exception data matches the one of the schemas.  Only
@@ -51,16 +94,12 @@
   enabled at compile time with *validate-errors*."
   [test-filter-pred]
   (fn validate-errors [m]
-    {:pre [(schema/validate DefnMap m)]
-     :post [(schema/validate DefnMap %)]}
+    {:pre [(schema/validate DefFormMap m)]
+     :post [(schema/validate DefFormMap %)]}
     (if (and *assert* *validate-errors*)
-      (update-in m [:arities]
-                 (fn [ba]
-                   (map
-                    #(validate-errors-form
-                      % test-filter-pred (-> m :meta :errors))
-                    ba)))
+      (validate-errors-impl m test-filter-pred)
       m)))
+
 
 ;;; # Validate arguments
 (def SigMap
@@ -158,22 +197,43 @@
       {:args (subvec sig 0 (dec n))
        :return (last sig)})))
 
-(defn validate-sig*
+(defmulti validate-sig* (fn [m] (:type m)))
+
+(defn add-validate-sig-form
+  [m sigs]
+  (assert* (sequential? sigs)
+           ":sig must be a sequence of vectors, but is %s" sigs)
+  (assert*
+   (every? vector? sigs)
+   ":sig must be a sequence of vectors, but has non-vector elements %s"
+   (remove vector? sigs))
+  (update-in m [:arities]
+             (fn [arity]
+               (map #(validate-sig-arity (map sig-map sigs) %) arity))))
+
+(defmethod validate-sig* :defn
   [m]
   {:pre [(schema/validate DefnMap m)]
    :post [(schema/validate DefnMap %)]}
-  (if *assert*
-    (let [sigs (-> m :meta :sig)]
-      (assert* (sequential? sigs)
-               ":sig must be a sequence of vectors, but is %s" sigs)
-      (assert*
-       (every? vector? sigs)
-       ":sig must be a sequence of vectors, but has non-vector elements %s"
-       (remove vector? sigs))
-      (update-in m [:arities]
-                 (fn [arity]
-                   (map #(validate-sig-arity (map sig-map sigs) %) arity))))
-    m))
+  (add-validate-sig-form m (-> m :meta :sig)))
+
+(defmethod validate-sig* :defmulti
+  [m]
+  {:pre [(schema/validate DefmultiMap m)]
+   :post [(schema/validate DefmultiMap %)]}
+  m)
+
+(defmethod validate-sig* :defmethod
+  [m]
+  {:pre [(schema/validate DefmethodMap m)]
+   :post [(schema/validate DefmethodMap %)]}
+  (add-validate-sig-form m (-> (resolve (:name m)) meta :sig)))
+
+(defmethod validate-sig* :def
+  [m]
+  (throw (ex-info
+          "Can not add a validate-sig stage to a def form."
+          {:m m})))
 
 (defn validate-sig
   "A stage that takes :sig metadata as a sequence of schema
@@ -181,7 +241,10 @@
   of the schema sequences.  The last element of each :sig element is
   the return type."
   []
-  validate-sig*)
+  (fn validate-sig [m]
+    (if *assert*
+      (validate-sig* m)
+      m)))
 
 (defn validate-optional-sig
   "A stage that optionally takes :sig metadata and validates it with
@@ -195,25 +258,33 @@
       m)))
 
 ;;; # Add sig to doc string
+(defn not-lazy [s]
+  (if (instance? clojure.lang.LazySeq s)
+    (vec s)
+    s))
+
 (defn remove-schema-ns
   [expr]
-  (postwalk
-   (fn [x]
-     (if (symbol? x)
-       (if-let [n (namespace x)]
-         (let [tn ((symbol n) (ns-aliases *ns*))]
-           (if (or (and tn (= (ns-name tn) 'schema.core))
-                   (= (symbol n) 'schema.core))
-             (symbol (name x))
-             x))
-         x)
-       x))
-   expr))
+  (if (or (list? expr) (instance? clojure.lang.Cons expr))
+    expr
+    (->> expr
+         (postwalk
+          (fn [x]
+            (if (symbol? x)
+              (if-let [n (namespace x)]
+                (let [tn ((symbol n) (ns-aliases *ns*))]
+                  (if (or (and tn (= (ns-name tn) 'schema.core))
+                          (= (symbol n) 'schema.core))
+                    (symbol (name x))
+                    x))
+                x)
+              x)))
+         not-lazy)))
 
 (defn format-sig
   [sig]
   (let [n (count sig)]
-    (join " " (map remove-schema-ns (assoc-in sig [(- n 2)] "->")))))
+    (join " " (mapv remove-schema-ns (assoc-in sig [(- n 2)] "->")))))
 
 (defn format-sigs
   [sigs]
@@ -227,6 +298,6 @@
   "When given, add :sig metadata to the function's doc string."
   []
   (fn add-meta [defn-map]
-    (if-let [sig (-> defn-map :meta :sig)]
+    (if-let [sig (and (contains? defn-map :meta) (-> defn-map :meta :sig))]
       (update-in defn-map [:meta :doc] str (format-sigs sig))
       defn-map)))
