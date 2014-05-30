@@ -7,13 +7,15 @@
   (is (= {:name 'f-name
           :arities '[{:args [a]
                       :body [a]}]
-          :meta {::x 1}}
+          :meta {::x 1}
+          :type :defn}
          (#'api-builder/defn-map 'f-name [{::x 1} ['a] 'a]))
       "single body")
   (is (= {:name 'f-name
           :arities '[{:args [a] :body [a]}
                      {:args [a b] :body [a b]}]
-          :meta {::x 1}}
+          :meta {::x 1}
+          :type :defn}
          (#'api-builder/defn-map 'f-name [{::x 1} '([a] a) '([a b] a b)]))
       "multi-arity"))
 
@@ -21,19 +23,22 @@
   (is (= {:name nil
           :arities '[{:args [a]
                       :body [a]}]
-          :meta {::x 1}}
+          :meta {::x 1}
+          :type :defn}
          (#'api-builder/fn-map [{::x 1} ['a] 'a]))
       "no name, single body")
   (is (= {:name 'f-name
           :arities '[{:args [a]
                       :body [a]}]
-          :meta {::x 1}}
+          :meta {::x 1}
+          :type :defn}
          (#'api-builder/fn-map ['f-name {::x 1} ['a] 'a]))
       "single body")
   (is (= {:name 'f-name
           :arities '[{:args [a] :body [a]}
                      {:args [a b] :body [a b]}]
-          :meta {::x 1}}
+          :meta {::x 1}
+          :type :defn}
          (#'api-builder/fn-map ['f-name {::x 1} '([a] a) '([a b] a b)]))
       "multi-arity"))
 
@@ -43,7 +48,8 @@
            {:name 'f-name
             :arities '[{:args [a]
                         :body [a]}]
-            :meta {::x 1}}))
+            :meta {::x 1}
+            :type :defn}))
       "single body")
     (is (= '(clojure.core/defn f-name [a] {:pre [a]} a)
          (#'api-builder/defn-form
@@ -51,21 +57,24 @@
             :arities '[{:args [a]
                         :conditions {:pre [a]}
                         :body [a]}]
-            :meta {::x 1}}))
+            :meta {::x 1}
+            :type :defn}))
       "single body with conditions")
     (is (= '(clojure.core/defn f-name ([a] a)([a b] a b))
          (#'api-builder/defn-form
            {:name 'f-name
             :arities '[{:args [a] :body [a]}
                      {:args [a b] :body [a b]}]
-            :meta {::x 1}}))
+            :meta {::x 1}
+            :type :defn}))
         "multi-arity")
     (is (= '(clojure.core/defn f-name ([a] {:pre [a]} a)([a b] a b))
          (#'api-builder/defn-form
            {:name 'f-name
             :arities '[{:args [a] :conditions {:pre [a]} :body [a]}
                      {:args [a b] :body [a b]}]
-            :meta {::x 1}}))
+            :meta {::x 1}
+            :type :defn}))
       "multi-arity with conditions"))
 
 (deftest fn-form-test
@@ -74,14 +83,16 @@
           {:name nil
            :arities '[{:args [a]
                        :body [a]}]
-           :meta {::x 1}}))
+           :meta {::x 1}
+           :type :defn}))
       "no name, single body")
   (is (= '(clojure.core/fn f-name [a] a)
          (#'api-builder/fn-form
           {:name 'f-name
            :arities '[{:args [a]
                        :body [a]}]
-           :meta {::x 1}}))
+           :meta {::x 1}
+           :type :defn}))
       "single body")
   (is (= '(clojure.core/fn f-name [a] {:pre [a]} a)
          (#'api-builder/fn-form
@@ -89,19 +100,22 @@
            :arities '[{:args [a]
                        :conditions {:pre [a]}
                        :body [a]}]
-           :meta {::x 1}}))
+           :meta {::x 1}
+           :type :defn}))
       "single body with conditions")
   (is (= '(clojure.core/fn f-name ([a] a)([a b] a b))
          (#'api-builder/fn-form
           {:name 'f-name
            :arities '[{:args [a] :body [a]}
                       {:args [a b] :body [a b]}]
-           :meta {::x 1}}))
+           :meta {::x 1}
+           :type :defn}))
       "multi-arity")
   (is (= '(clojure.core/fn f-name ([a] {:pre [a]} a)([a b] a b))
          (#'api-builder/fn-form
           {:name 'f-name
            :arities '[{:args [a] :conditions {:pre [a]} :body [a]}
                       {:args [a b] :body [a b]}]
-           :meta {::x 1}}))
+           :meta {::x 1}
+           :type :defn}))
       "multi-arity with conditions"))

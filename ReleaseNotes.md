@@ -1,3 +1,13 @@
+## 0.2.0
+
+- Add def and defmulti form definers
+  Adds `def-def` and `def-defmulti` for defining API vars and multimethods.
+
+- Minor readme fix
+
+- Name schemas for return values
+  Closes #7
+
 ## 0.1.5
 
 - Add stage to validate :sig only if present

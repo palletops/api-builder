@@ -12,12 +12,27 @@
 (dfn/def-fn fn-add-meta
   [(add-meta {::x :x})])
 
+(dfn/def-defmulti defmulti-add-meta
+  [(add-meta {::x :x})])
+
+(dfn/def-def def-add-meta
+  [(add-meta {::x :x})])
+
 (defn-add-meta f [])
+
+(defmulti-add-meta m (fn [x] x))
+(defmethod-add-meta m :x [x] x)
+
+(def-add-meta v1 1)
+(def-add-meta v2 "doc" 1)
 
 (deftest add-meta-test
   (is (= :x (-> #'f meta ::x)))
   (let [f (fn-add-meta f [])
-        g (fn-add-meta [])]))
+        g (fn-add-meta [])])
+  (is (= :x (-> #'m meta ::x)))
+  (is (= :x (-> #'v1 meta ::x)))
+  (is (= :x (-> #'v2 meta ::x))))
 
 ;;; # Test validate-errors
 
@@ -27,17 +42,39 @@
 (dfn/def-defn defn-validate-errors-always
   [(validate-errors '(constantly true))])
 
+(dfn/def-defmulti defmulti-validate-errors-always
+  [(validate-errors '(constantly true))])
+
 (defn-validate-errors-always v-e-a
   {:errors [{:type (schema/eq ::fred)}]}
   []
   (throw (ex-info "doesn't match" {:type ::smith})))
 
+(defmulti-validate-errors-always multi-v-e-a
+  {:errors [{:type (schema/eq ::fred)}]}
+  (fn [x] x))
+
+(defmethod-validate-errors-always multi-v-e-a :default
+  [x]
+  (throw (ex-info "doesn't match" {:type ::smith})))
+
 (dfn/def-defn defn-validate-errors-never
+  [(validate-errors '(constantly false))])
+
+(dfn/def-defmulti defmulti-validate-errors-never
   [(validate-errors '(constantly false))])
 
 (defn-validate-errors-never v-e-n
   {:errors [{:type (schema/eq ::fred)}]}
   []
+  (throw (ex-info "some unkown error" {:type ::smith})))
+
+(defmulti-validate-errors-never multi-v-e-n
+  {:errors [{:type (schema/eq ::fred)}]}
+  (fn [x] x))
+
+(defmethod-validate-errors-never multi-v-e-n :default
+  [x]
   (throw (ex-info "some unkown error" {:type ::smith})))
 
 ;;; With assertions disabled
@@ -46,19 +83,38 @@
 (dfn/def-defn defn-validate-errors-always-off
   [(validate-errors '(constantly true))])
 
+(dfn/def-defmulti defmulti-validate-errors-always-off
+  [(validate-errors '(constantly true))])
+
 (defn-validate-errors-always-off v-e-a-off
   {:errors [{:type (schema/eq ::fred)}]}
   []
   (throw (ex-info "some unkown error" {:type ::smith})))
+
+(defmulti-validate-errors-always-off multi-v-e-a-off
+  {:errors [{:type (schema/eq ::fred)}]}
+  (fn [x] x))
+
+(defmethod-validate-errors-always-off multi-v-e-a-off :default
+  [x]
+  (throw (ex-info "some unkown error" {:type ::smith})))
+
 
 (deftest validate-errors-test
   (is (thrown-with-msg?
        clojure.lang.ExceptionInfo #"Error thrown doesn't match :errors schemas"
        (v-e-a)))
   (is (thrown-with-msg?
+       clojure.lang.ExceptionInfo #"Error thrown doesn't match :errors schemas"
+       (multi-v-e-a :x)))
+  (is (thrown-with-msg?
        clojure.lang.ExceptionInfo #"some unkown error" (v-e-n)))
   (is (thrown-with-msg?
-       clojure.lang.ExceptionInfo #"some unkown error" (v-e-a-off))))
+       clojure.lang.ExceptionInfo #"some unkown error" (multi-v-e-n :x)))
+  (is (thrown-with-msg?
+       clojure.lang.ExceptionInfo #"some unkown error" (v-e-a-off)))
+  (is (thrown-with-msg?
+       clojure.lang.ExceptionInfo #"some unkown error" (multi-v-e-a-off :x))))
 
 ;;; # Test validate-sig
 (dfn/def-defn defn-validate-args

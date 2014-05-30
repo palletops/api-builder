@@ -4,19 +4,52 @@
    [schema.core :as schema]))
 
 (def ArityMap
-  {:args [schema/Any]
-   (schema/optional-key :conditions)
-   {(schema/optional-key :pre) [schema/Any]
-    (schema/optional-key :post) [schema/Any]}
-   :body [schema/Any]})
+  (schema/named
+   {:args [schema/Any]
+    (schema/optional-key :conditions)
+    {(schema/optional-key :pre) [schema/Any]
+     (schema/optional-key :post) [schema/Any]}
+    :body [schema/Any]}
+   "ArityMap"))
 
 (def DefnMap
   {:name clojure.lang.Symbol
    :arities [ArityMap]
-   :meta (schema/maybe {schema/Keyword schema/Any})})
+   :meta (schema/maybe {schema/Keyword schema/Any})
+   :type (schema/eq :defn)})
 
 (def FnMap
   (assoc DefnMap :name (schema/maybe clojure.lang.Symbol)))
+
+(def DefmultiMap
+  {:name clojure.lang.Symbol
+   :arities [ArityMap]
+   :meta (schema/maybe {schema/Keyword schema/Any})
+   :dispatch-fn (schema/either clojure.lang.Symbol [schema/Any])
+   :options [schema/Any]
+   :type (schema/eq :defmulti)})
+
+(def DefmethodMap
+  {:name clojure.lang.Symbol
+   :arities [ArityMap]
+   :dispatch-value schema/Any
+   :type (schema/eq :defmethod)})
+
+(def DefMap
+  {:name clojure.lang.Symbol
+   :value schema/Any
+   :meta (schema/maybe {schema/Keyword schema/Any})
+   :type (schema/eq :def)})
+
+(defn- map-type= [x]
+  #(= x (:type %)))
+
+(def DefFormMap
+  (schema/conditional
+   (map-type= :defn) (schema/either DefnMap FnMap)
+   (map-type= :defmulti) DefmultiMap
+   (map-type= :defmethod) DefmethodMap
+   (map-type= :def) DefMap))
 
 (defn assert*
   "Evaluates expr and throws an exception if it does not evaluate to
