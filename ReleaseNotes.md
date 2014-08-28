@@ -1,3 +1,11 @@
+## 0.3.0
+
+- Remove logging from default api forms
+  Adds the logged versions back into com.palletops.api-builder.api-logged.
+  This is so the default versions can be used from clojurescript.
+
+- Add clojurescript tests
+
 ## 0.2.0
 
 - Add def and defmulti form definers
@@ -11,7 +19,7 @@
 ## 0.1.5
 
 - Add stage to validate :sig only if present
-  The `validate-optional-sig` stage will validate the `:sig` metadata only 
+  The `validate-optional-sig` stage will validate the `:sig` metadata only
   if the `:sig` metadata is present.
 
   Also makes the `add-sig-doc` stage conditional on the presence of the

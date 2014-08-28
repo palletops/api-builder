@@ -12,7 +12,7 @@
 
 (defn format-with-domain-context-tags
   [{:keys [domain context tags]} & _]
-  (str (pr-str domain) (pr-str context) (pr-str tags)))
+  (str (pr-str domain) (pr-str context) (pr-str (sort tags))))
 
 (def-log-scope-fn scope
   {:context {:a 1}
@@ -32,7 +32,7 @@
   [] 1)
 
 (deftest log-scope-test
-  (is (= ":d{:a 1}#{:t1 :t2}\n" (with-out-str (scope)))))
+  (is (= ":d{:a 1}(:t1 :t2)\n" (with-out-str (scope)))))
 
 (deftest log-entry-test
   (set-level! :trace)

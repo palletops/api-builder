@@ -13,30 +13,30 @@
    "ArityMap"))
 
 (def DefnMap
-  {:name clojure.lang.Symbol
+  {:name schema/Symbol
    :arities [ArityMap]
    :meta (schema/maybe {schema/Keyword schema/Any})
    :type (schema/eq :defn)})
 
 (def FnMap
-  (assoc DefnMap :name (schema/maybe clojure.lang.Symbol)))
+  (assoc DefnMap :name (schema/maybe schema/Symbol)))
 
 (def DefmultiMap
-  {:name clojure.lang.Symbol
+  {:name schema/Symbol
    :arities [ArityMap]
    :meta (schema/maybe {schema/Keyword schema/Any})
-   :dispatch-fn (schema/either clojure.lang.Symbol [schema/Any])
+   :dispatch-fn (schema/either schema/Symbol [schema/Any])
    :options [schema/Any]
    :type (schema/eq :defmulti)})
 
 (def DefmethodMap
-  {:name clojure.lang.Symbol
+  {:name schema/Symbol
    :arities [ArityMap]
    :dispatch-value schema/Any
    :type (schema/eq :defmethod)})
 
 (def DefMap
-  {:name clojure.lang.Symbol
+  {:name schema/Symbol
    :value schema/Any
    :meta (schema/maybe {schema/Keyword schema/Any})
    :type (schema/eq :def)})
