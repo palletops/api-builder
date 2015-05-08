@@ -7,7 +7,7 @@ parameters based on data schemas, logging of parameters, augmentation
 of docstring based on parameter schemas, or even tagging of functions
 for later grouping in documentation.
 
-To use it, add `[com.palletops/api-builder "0.3.0"]` to your
+To use it, add `[com.palletops/api-builder "0.3.1"]` to your
 `:dependencies`.
 
 ## Motivation
