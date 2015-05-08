@@ -1,3 +1,10 @@
+## 0.3.1
+
+- Update schema and build tool dependencies
+  Update to schema 0.4.2, and latest build tool dependencies.
+
+  Closes #10
+
 ## 0.3.0
 
 - Remove logging from default api forms
